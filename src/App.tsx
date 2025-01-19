@@ -1,8 +1,10 @@
-import { OrbitControls } from '@react-three/drei'
+import { OrbitControls, Stage, useGLTF } from '@react-three/drei'
 import { Canvas, MeshProps, useFrame } from '@react-three/fiber'
-import { useRef, useState } from 'react'
+import { Suspense, useRef, useState } from 'react'
 import { Mesh } from 'three'
+import { useTweaks } from 'tweak-tools'
 
+const model = '/suzanne.gltf'
 
 function Box(props: MeshProps) {
 
@@ -33,16 +35,37 @@ function Box(props: MeshProps) {
 
 function App() {
 
+  const { nodes } = useGLTF(model)
+  const { rotation } = useTweaks({
+    rotation: { value: -0.4, step: 0.2, label: 'Rotate Suzanne' }
+  })
+
   return (
     <Canvas>
-      <ambientLight intensity={Math.PI / 2} />
-      <spotLight position={[10, 10, 10]} angle={0.15} penumbra={1} decay={0} intensity={Math.PI} />
-      <pointLight position={[-10, -10, -10]} decay={0} intensity={Math.PI} />
-      <Box position={[-1.2, 0, 0]} />
-      <Box position={[1.2, 0, 0]} />
-      <OrbitControls />
+
+      <Stage preset={'portrait'}>
+
+        <Suspense>
+          <mesh
+            position={[0, 0, 0]}
+            rotation={[0, rotation, 0]}
+            castShadow
+            receiveShadow
+            geometry={nodes.Suzanne.geometry}
+            material={nodes.Suzanne.material}>
+          </mesh>
+        </Suspense>
+
+        <Box position={[2, 0.2, 0]} />
+
+        <OrbitControls />
+
+      </Stage>
+
     </Canvas>
   )
 }
 
 export default App
+
+useGLTF.preload(model)

@@ -1,12 +1,20 @@
-import { OrbitControls, Stage, useGLTF } from '@react-three/drei'
-import { Canvas, MeshProps, useFrame } from '@react-three/fiber'
+import { OrbitControls, useGLTF } from '@react-three/drei'
+import { Canvas, useFrame } from '@react-three/fiber'
 import { Suspense, useRef, useState } from 'react'
-import { Mesh } from 'three'
-import { useTweaks } from 'tweak-tools'
+import { Mesh, MeshStandardMaterial } from 'three'
+import { GLTF } from 'three-stdlib'
+import { useTweaks } from './tweaks/use-tweaks'
 
 const model = '/suzanne.gltf'
 
-function Box(props: MeshProps) {
+function Box({ ...args }) {
+
+  const { color, otherColor, scale } = useTweaks({
+    color: { value: '#ff0000' },
+    otherColor: { value: '#00ff00' },
+    scale: { value: 1.5 },
+    someName: { value: 'some' }
+  })
 
   // This reference gives us direct access to the THREE.Mesh object
   const ref = useRef<Mesh>(null!)
@@ -21,46 +29,53 @@ function Box(props: MeshProps) {
   // Return the view, these are regular Threejs elements expressed in JSX
   return (
     <mesh
-      {...props}
+      {...args}
       ref={ref}
-      scale={clicked ? 1.5 : 1}
+      scale={clicked ? scale : 1}
       onClick={() => click(!clicked)}
       onPointerOver={(event) => (event.stopPropagation(), hover(true))}
       onPointerOut={() => hover(false)}>
       <boxGeometry args={[1, 1, 1]} />
-      <meshStandardMaterial color={hovered ? 'hotpink' : 'orange'} />
+      <meshStandardMaterial color={hovered ? color : otherColor} />
     </mesh>
   )
 }
 
+export type DreiGLTF = GLTF & {
+  nodes: Record<string, Mesh>
+  materials: Record<string, MeshStandardMaterial>
+}
+
 function App() {
 
-  const { nodes } = useGLTF(model)
-  const { rotation } = useTweaks({
-    rotation: { value: -0.4, step: 0.2, label: 'Rotate Suzanne' }
+  const { rotation, position } = useTweaks({
+    rotation: { value: 0, min: 0, max: 10, step: 0.1 },
+    position: { value: 0, min: -10, max: 10, step: 0.1 },
   })
+
+  const { nodes } = useGLTF(model) as DreiGLTF
 
   return (
     <Canvas>
 
-      <Stage preset={'portrait'}>
+      <ambientLight intensity={1} />
+      <directionalLight intensity={3} />
 
-        <Suspense>
-          <mesh
-            position={[0, 0, 0]}
-            rotation={[0, rotation, 0]}
-            castShadow
-            receiveShadow
-            geometry={nodes.Suzanne.geometry}
-            material={nodes.Suzanne.material}>
-          </mesh>
-        </Suspense>
+      <Suspense>
+        <mesh
+          position={[position, 0, 0]}
+          rotation={[0, rotation, 0]}
+          castShadow
+          receiveShadow
+          geometry={nodes.Suzanne.geometry}
+          material={nodes.Suzanne.material}>
+        </mesh>
+      </Suspense>
 
-        <Box position={[2, 0.2, 0]} />
+      <Box position={[2, 0.2, 0]} />
 
-        <OrbitControls />
+      <OrbitControls />
 
-      </Stage>
 
     </Canvas>
   )
